@@ -57,14 +57,14 @@ class Subscription(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     fullfillment_frequency = models.IntegerField(default=30)
     start_date = models.DateField(auto_now_add=True)
-
+    address = models.ForeignKey(Address, on_delete=models.CASCADE)
     last_fullfillment_date = models.DateField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
-
+    title = models.CharField(max_length=255, blank=False, null=False, default='Subscription')
 
     @property
     def items(self):
-        return ItemSubscription.objects.filter(subscription=self)
+        return SubscriptionItem.objects.filter(subscription=self)
     
     @property
     def total(self):
@@ -94,10 +94,14 @@ class Subscription(models.Model):
         self.save()
     
 #create a Item Subscription relation
-class ItemSubscription(models.Model):
+class SubscriptionItem(models.Model):
     item = models.ForeignKey(Item, on_delete=models.CASCADE)
     subscription = models.ForeignKey(Subscription, on_delete=models.CASCADE)
     quantity = models.IntegerField(default=1)
+
+    #make sure item and subscription are unique together
+    class Meta:
+        unique_together = ('item', 'subscription')
 
 from datetime import datetime
 class Order(models.Model):

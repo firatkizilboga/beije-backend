@@ -12,6 +12,12 @@ from .serializers import *
 # Create your tests here.
 class BaseTest(APITestCase):
     def setUp(self):
+        #create 3 items for testing
+        self.item1 = Item.objects.create(title='Item 1', price=10)
+        self.item2 = Item.objects.create(title='Item 2', price=20)
+        self.item3 = Item.objects.create(title='Item 3', price=30)
+
+
         data = {
             'email': 'firatkizilboga11@gmail.com',
             'first_name': 'Firat',
@@ -20,6 +26,16 @@ class BaseTest(APITestCase):
         }
         self.create_user(data)
         self.login_user(data['email'], data['password'])
+        self.create_address({
+            'title': 'Home',
+            'address_line1': '1234 Main St',
+            'address_line2': 'Apt 1',
+            'city': 'Los Angeles',
+            'neighborhood': 'Hollywood',
+            'postal_code': '90028',
+            'country': 'USA',
+        })
+
     def create_user(self, data):
         url = reverse('user-register')
         self.client = APIClient()
@@ -38,7 +54,19 @@ class BaseTest(APITestCase):
         response = self.client.post(url, data, format='json')
         return response
     
+    def create_item(self, title, price):
+        data = {
+            'title': title,
+            'price': price,
+        }
+        url = reverse('item-create')
+        response = self.client.post(url, data, format='json')
+        return response
 
+    def create_subscription(self, data):
+        url = reverse('subscription-create')
+        response = self.client.post(url, data, format='json')
+        return response
     
     
     
@@ -184,12 +212,11 @@ class AddressListViewTest(BaseTest):
         response = self.create_address(data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
-
     def test_list_addresses(self):
         url = reverse('address-list')
         response = self.client.post(url, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 2)
+        self.assertEqual(len(response.data),3)
 
     def test_list_addresses_unauthenticated(self):
         url = reverse('address-list')
@@ -312,3 +339,461 @@ class AddressDeleteViewTest(BaseTest):
         url = reverse('address-delete', args=[address_id])
         response = self.client.delete(url, format='json')
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+    def test_delete_address_unauthenticated(self):
+        url = reverse('address-list')
+        response = self.client.post(url, format='json')
+        address_id = response.data[0]['id']
+        url = reverse('address-delete', args=[address_id])
+        client = APIClient()
+        response = client.delete(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+#subscription stuff
+class SubscriptionCreateViewTest(BaseTest):
+    def setUp(self):
+        super().setUp()
+        self.create_address(
+            {
+                'title': 'Home',
+                'address_line1': 'Kadikoy',
+                'address_line2': 'Istanbul',
+                'city': 'Istanbul',
+                'country': 'Turkey',
+                'postal_code': '34732',
+            }
+        )
+    
+    def test_create_subscription(self):
+        url = reverse('address-list')
+        response = self.client.post(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        address_id = response.data[0]['id']
+        
+        url = reverse('subscription-create')
+        data = {
+            'title': 'Monthly',
+            'address': address_id,
+            'fullfillment_frequency': 30,
+        }
+
+        response = self.create_subscription(data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_create_subscription_unauthenticated(self):
+        url = reverse('address-list')
+        response = self.client.post(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        address_id = response.data[0]['id']
+        
+        url = reverse('subscription-create')
+        data = {
+            'title': 'Monthly',
+            'address': address_id,
+            'fullfillment_frequency': 30,
+        }
+
+        self.client = APIClient()
+        response = self.create_subscription(data)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+    
+class SubscriptionListViewTest(BaseTest):
+    def setUp(self):
+        super().setUp()
+        self.create_subscription(
+            {
+                'title': 'Monthly',
+                'address': 0,
+                'fullfillment_frequency': 30,
+            }
+        )
+        self.create_subscription(
+            {
+                'title': 'Weekly',
+                'address': 0,
+                'fullfillment_frequency': 7,
+            }
+        )
+        self.client = APIClient()
+        data = {
+                'email': 'firat2@gmail.com',
+                'first_name': 'Firat',
+                'last_name': 'Kizilboga',
+                'password': 'Aa125423',
+            }
+        self.create_user(
+            data
+        )
+        self.login_user(data['email'], data['password'])
+        self.create_address
+        (
+            {
+                'title': 'Home',
+                'address_line1': 'Kadikoy',
+                'address_line2': 'Istanbul',
+                'city': 'Istanbul',
+                'country': 'Turkey',
+                'postal_code': '34732',
+            }
+        )
+
+        self.create_subscription(
+            {
+                'title': 'Monthly',
+                'address': 1,
+                'fullfillment_frequency': 30,
+            }
+        )
+
+    def test_list_subscription(self):
+        url = reverse('subscription-list')
+        response = self.client.post(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+
+    def test_list_subscription_unauthenticated(self):
+        url = reverse('subscription-list')
+        client = APIClient()
+        response = client.post(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+class SubscriptionDetailViewTest(BaseTest):
+    def setUp(self):
+        super().setUp()
+        self.create_address({
+            'title': 'Home',
+            'address_line1': '1234 Main St',
+            'address_line2': 'Apt 1',
+            'city': 'Los Angeles',
+            'neighborhood': 'Hollywood',
+            'postal_code': '90028',
+            'country': 'USA',
+        })
+
+        response = self.create_subscription(
+            {
+                'title': 'Monthly',
+                'address': 2,
+                'fullfillment_frequency': 30,
+            }
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        response = self.create_subscription(
+            {
+                'title': 'Monthly',
+                'address': 1,
+                'fullfillment_frequency': 30,
+            }
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_detail_subscription(self):
+        url = reverse('subscription-list')
+        response = self.client.post(url, format='json')
+        subscription_id = response.data[0].get('id')
+        url = reverse('subscription-detail', args=[subscription_id])
+        response = self.client.post(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['title'], 'Monthly')
+    
+    
+    def test_detail_subscription_unauthenticated(self):
+        url = reverse('subscription-detail', args=[1])
+        client = APIClient()
+        response = client.post(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+    
+    def test_detail_subscription_does_not_exist(self):
+        url = reverse('subscription-detail', args=[100])
+        response = self.client.post(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+    
+    def test_detail_subscription_does_not_belong_to_user(self):
+        #create a user
+        self.client = APIClient()
+        data = {
+                'email': 'f2@gmail.com',
+                'first_name': 'Firat',
+                'last_name': 'Kizilboga',
+                'password': 'Aa125423',
+            }
+        self.create_user(
+            data
+        )
+        self.login_user(data['email'], data['password'])
+        self.create_address
+        (
+            {
+                'title': 'Home',
+                'address_line1': 'Kadikoy',
+                'address_line2': 'Istanbul',
+                'city': 'Istanbul',
+                'country': 'Turkey',
+                'postal_code': '34732',
+            }
+        )
+        self.create_subscription(
+            {
+                'title': 'Monthly',
+                'address': 1,
+                'fullfillment_frequency': 30,
+            }
+        )
+
+        #reach to the subscription detail page 0
+        url = reverse('subscription-detail', args=[1])
+        response = self.client.post(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+    
+
+class SubscriptionDeleteViewTest(BaseTest):
+    def setUp(self):
+        super().setUp()
+        self.create_subscription({
+            'title': 'Monthly',
+            'address': 1,
+            'fullfillment_frequency': 30,
+        })
+        self.create_subscription({
+            'title': 'Weekly',
+            'address': 1,
+            'fullfillment_frequency': 7,
+        })
+
+    def test_delete_subscription(self):
+        url = reverse('subscription-delete', args=[1])
+        response = self.client.delete(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(Subscription.objects.count(), 1)
+    
+    def test_delete_subscription_unauthenticated(self):
+        url = reverse('subscription-delete', args=[1])
+        client = APIClient()
+        response = client.delete(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(Subscription.objects.count(), 2)
+    
+    def test_delete_subscription_does_not_exist(self):
+        url = reverse('subscription-delete', args=[100])
+        response = self.client.delete(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(Subscription.objects.count(), 2)
+    
+    def test_delete_subscription_does_not_belong_to_user(self):
+        #create a user
+        self.client = APIClient()
+        data = {
+                'email': 'f2@gmail.com',
+                'first_name': 'Firat',
+                'last_name': 'Kizilboga',
+                'password': 'Aa125423',
+            }
+        self.create_user(
+            data
+        )
+        self.login_user(data['email'], data['password'])
+        url = reverse('subscription-delete', args=[1])
+        response = self.client.delete(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class SubscriptionItemsViewTest(BaseTest):
+    def setUp(self):
+        super().setUp()
+        self.create_subscription({
+            'title': 'Monthly',
+            'address': 1,
+            'fullfillment_frequency': 30,
+        })
+    
+    def test_add_subscription_item(self):
+        url = reverse('subscription-item-add', args=[1])
+        data = {
+            'item': 1,
+            'quantity': 5
+        }
+        response = self.client.post(url,data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        data = {
+            'item': 2,
+            'quantity': 1
+        }
+        response = self.client.post(url,data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        data = {
+            'item': 3,
+            'quantity': 2
+        }
+        response = self.client.post(url,data, format='json')    
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        #add a second subscription
+        self.create_subscription({
+            'title': 'Weekly',
+            'address': 1,
+            'fullfillment_frequency': 7,
+        })
+        url = reverse('subscription-item-add', args=[2])
+        data = {
+            'item': 1,
+            'quantity': 5
+        }
+        response = self.client.post(url,data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+
+        #total price is 5*10 + 1*20 + 2*30 = 130
+        #get the subscription
+        url = reverse('subscription-detail', args=[1])
+        response = self.client.post(url, format='json')
+        print(response.data)
+        total_price = int(response.data.get('total'))
+        self.assertEqual(total_price, 130)
+
+    def test_add_subscription_item_unauthenticated(self):
+        url = reverse('subscription-item-add', args=[1])
+        data = {
+            'item': 1,
+            'quantity': 5
+        }
+        client = APIClient()
+        response = client.post(url,data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_add_subscription_does_not_exist(self):
+        url = reverse('subscription-item-add', args=[100])
+        data = {
+            'item': 1,
+            'quantity': 5
+        }
+        response = self.client.post(url,data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+    
+    def test_add_subscription_does_not_belong_to_user(self):
+        #create a user
+        self.client = APIClient()
+        data = {
+                'email': 'f2@gmail.com',
+                'first_name': 'Firat',
+                'last_name': 'Kizilboga',
+                'password': 'Aa125423',
+            }
+        self.create_user(
+            data
+        )
+        self.login_user(data['email'], data['password'])
+        url = reverse('subscription-item-add', args=[1])
+        data = {
+            'item': 1,
+            'quantity': 5
+        }
+        response = self.client.post(url,data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        
+    def test_add_subscription_item_does_not_exist(self):
+        url = reverse('subscription-item-add', args=[1])
+        data = {
+            'item': 100,
+            'quantity': 5
+        }
+        response = self.client.post(url,data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+    
+    def test_add_subscription_item_quantity_zero(self):
+        url = reverse('subscription-item-add', args=[1])
+        data = {
+            'item': 1,
+            'quantity': 0
+        }
+        response = self.client.post(url,data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+    
+
+    def test_remove_subscription_item(self):
+        #first add an item
+        url = reverse('subscription-item-add', args=[1])
+        data = {
+            'item': 1,
+            'quantity': 5
+        }
+        response = self.client.post(url,data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        #remove the item
+        url = reverse('subscription-item-remove', args=[1])
+        data = {
+            'item': 1,
+            'quantity': 5
+        }
+        response = self.client.delete(url,data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+        #get the subscription
+        url = reverse('subscription-detail', args=[1])
+        response = self.client.post(url, format='json')
+        print(response.data)
+        total_price = int(response.data.get('total'))
+        self.assertEqual(total_price, 0)
+
+ 
+    def test_remove_subscription_item_unauthenticated(self):
+        url = reverse('subscription-item-remove', args=[1])
+        data = {
+            'item': 1,
+            'quantity': 5
+        }
+        client = APIClient()
+        response = client.delete(url,data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+    
+    def test_remove_subscription_does_not_exist(self):
+        url = reverse('subscription-item-remove', args=[100])
+        data = {
+            'item': 1,
+            'quantity': 5
+        }
+        response = self.client.delete(url,data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+    
+    def test_remove_subscription_does_not_belong_to_user(self):
+        #create a user
+        self.client = APIClient()
+        data = {
+                'email': 'f2@gmail.com',
+                'first_name': 'Firat',
+                'last_name': 'Kizilboga',
+                'password': "Aa125423",
+            }
+        self.create_user(
+            data
+        )
+        self.login_user(data['email'], data['password'])
+        url = reverse('subscription-item-remove', args=[1])
+        data = {
+            'item': 1,
+            'quantity': 5
+        }
+        response = self.client.delete(url,data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+    
+    #list all subscriptions
+    def test_list_subscriptions(self):
+        url = reverse('subscription-list')
+        response = self.client.post(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+    
+    def test_list_subscriptions_unauthenticated(self):
+        url = reverse('subscription-list')
+        client = APIClient()
+        response = client.post(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+    
+
+    
+
+    
