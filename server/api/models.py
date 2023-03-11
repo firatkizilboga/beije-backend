@@ -41,7 +41,15 @@ class Order(models.Model):
     pass
 
 class Address(models.Model):
-    pass
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    title = models.CharField(max_length=255, blank=False, null=False)
+    address_line1 = models.CharField(max_length=255, blank=False, null=False)
+    address_line2 = models.CharField(max_length=255, blank=True, null=True)
+    city = models.CharField(max_length=255, blank=True, null=True)
+    neighborhood = models.CharField(max_length=255, blank=True, null=True)
+    postal_code = models.CharField(max_length=255, blank=True, null=True)
+    country = models.CharField(max_length=255, blank=True, null=True)
+
 
 class Subscription(models.Model):
     pass

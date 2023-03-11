@@ -47,10 +47,6 @@ class UserLoginSerializer(serializers.Serializer):
             user = authenticate(request=self.context.get('request'),
                                 email=email, password=password)
             
-            print("user ", user)
-            
-            print("usercount ", User.objects.count())
-            
             # The authenticate call simply returns None for is_active=False
             # users. (Assuming the default ModelBackend authentication
             # backend.)
@@ -65,4 +61,31 @@ class UserLoginSerializer(serializers.Serializer):
         attrs['user'] = user
         return attrs
     
+class AddressSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Address
+        fields =  [
+            'title',
+            'address_line1',
+            'address_line2',
+            'city',
+            'neighborhood',
+            'postal_code',
+            'country',
+            'user',
+            'id'
+        ]
+        read_only_fields = ['user','id']
 
+    def validate(self, data):
+        if len(data['postal_code']) < 5:
+            raise serializers.ValidationError('Postal code must be at least 5 characters long')
+        
+        if len(data['address_line1']) < 1:
+            raise serializers.ValidationError('Address line 1 must be filled')
+
+        return data
+
+    def create(self, validated_data):
+        validated_data['user'] = self.context['request'].user
+        return super().create(validated_data)
