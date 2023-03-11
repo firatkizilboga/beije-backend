@@ -10,98 +10,100 @@ from .models import User, Order, Address, Subscription
 from .serializers import *
 
 # Create your tests here.
-    
-
-class UserCreateViewTest(APITestCase):
-    def test_create_user(self):
-        url = reverse('user-register')
-        print(url)
-
+class BaseTest(APITestCase):
+    def setUp(self):
         data = {
             'email': 'firatkizilboga11@gmail.com',
             'first_name': 'Firat',
             'last_name': 'Kizilboga',
             'password': 'Aa125423',
         }
+        self.create_user(data)
+        self.login_user(data['email'], data['password'])
+    def create_user(self, data):
+        url = reverse('user-register')
         self.client = APIClient()
         response = self.client.post(url, data, format='json')
+        return response
+
+    def login_user(self, email, password):
+        url = reverse('user-login')
+        response = self.client.post(url, {'email': email, 'password': password}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + response.data['token'])
+        return response.data['token']
+
+    def create_address(self, data):
+        url = reverse('address-create')
+        response = self.client.post(url, data, format='json')
+        return response
+    
+
+    
+    
+    
+class UserCreateViewTest(BaseTest):
+    def setUp(self):
+        pass
+    def test_create_user(self):
+        data = {
+            'email': 'firatkizilboga11@gmail.com',
+            'first_name': 'Firat',
+            'last_name': 'Kizilboga',
+            'password': 'Aa125423',
+        }
+        response = self.create_user(data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         return data
 
     def test_create_user_with_small_password(self):
-        url = reverse('user-register')
         data = {
             'email': 'firatkizilboga12@gmail.com',
             'first_name': 'Firat',
             'last_name': 'Kizilboga',
             'password': 'Aa125',
         }
-        response = self.client.post(url, data, format='json')
+        response = self.create_user(data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_create_user_with_no_password(self):
-        url = reverse('user-register')
         data = {
             'email': 'firatkizilboga123@gmail.com',
             'first_name': 'Firat',
             'last_name': 'Kizilboga',
         }
-
-        response = self.client.post(url, data, format='json')
+        response = self.create_user(data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-    
-    
-    
-class UserLoginViewTest(APITestCase):
+
+class UserLoginViewTest(BaseTest):
     def setUp(self):
-        url = reverse('user-register')
         data = {
             'email': 'firatkizilboga11@gmail.com',
             'first_name': 'Firat',
             'last_name': 'Kizilboga',
             'password': 'Aa125423',
         }
-        self.client = APIClient()
-        response = self.client.post(url, data, format='json')
-        self.data = data
-
+        response = self.create_user(data)
+        self.token = self.login_user(data['email'], data['password'])
 
     def test_login_user(self):
-        email = self.data['email']
-        password = self.data['password']
         url = reverse('user-login')
-        print(url)
+        email = 'firatkizilboga11@gmail.com'
+        password = 'Aa125423'
         response = self.client.post(url, {'email': email, 'password':password}, format='json')
-        print(response.data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_login_user_with_wrong_password(self):
         url = reverse('user-login')
-        email = self.data['email']
-
+        email = 'firatkizilboga11@gmail.com'
         response = self.client.post(url, {'email': email, 'password':'wrong-password'}, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
     
 
-class AddressCreateViewTest(APITestCase):
+class AddressCreateViewTest(BaseTest):
     def setUp(self):
-        url = reverse('user-register')
-        data = {
-            'email': 'firatkizilboga@gmail.com',
-            'first_name': 'Firat',
-            'last_name': 'Kizilboga',
-            'password': 'Aa125423',
-        }
-        response = self.client.post(url, data, format='json')
-        self.data = data
+        super().setUp()
 
-        url = reverse('user-login')
-        email = self.data['email']
-        password = self.data['password']
-        response = self.client.post(url, {'email': email, 'password':password}, format='json')
-        self.token = response.data['token']
-        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token)
-    
     def test_create_address(self):
         url = reverse('address-create')
         data = {
@@ -112,8 +114,7 @@ class AddressCreateViewTest(APITestCase):
             'country': 'Turkey',
             'postal_code': '34732',
         }
-        response = self.client.post(url, data, format='json')
-        print(response.data)
+        response = self.create_address(data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
     
     def test_create_address_with_no_title(self):
@@ -125,7 +126,7 @@ class AddressCreateViewTest(APITestCase):
             'country': 'Turkey',
             'postal_code': '34732',
         }
-        response = self.client.post(url, data, format='json')
+        response = self.create_address(data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
     
     def test_create_address_with_no_address_line1(self):
@@ -137,7 +138,7 @@ class AddressCreateViewTest(APITestCase):
             'country': 'Turkey',
             'postal_code': '34732',
         }
-        response = self.client.post(url, data, format='json')
+        response = self.create_address(data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
     
     def test_create_address_with_no_city(self):
@@ -149,7 +150,7 @@ class AddressCreateViewTest(APITestCase):
             'country': 'Turkey',
             'postal_code': '34732',
         }
-        response = self.client.post(url, data, format='json')
+        response = self.create_address(data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
     
@@ -163,43 +164,14 @@ class AddressCreateViewTest(APITestCase):
             'country': 'Turkey',
             'postal_code': '34732',
         }
-        client = APIClient()
-        response = client.post(url, data, format='json')
+        self.client = APIClient()
+        response = self.create_address(data)
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
-class AddressListViewTest(APITestCase):
+class AddressListViewTest(BaseTest):
     def setUp(self):
-        url = reverse('user-register')
-        data = {
-            'email': 'firatkizilboga@gmail.com',
-            'first_name': 'Firat',
-            'last_name': 'Kizilboga',
-            'password': 'Aa125423',
-        }
-        response = self.client.post(url, data, format='json')
-        self.data = data
-
-        url = reverse('user-login')
-        email = self.data['email']
-        password = self.data['password']
-        response = self.client.post(url, {'email': email, 'password':password}, format='json')
-        self.token = response.data['token']
-        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token)
-
-        url = reverse('address-create')
-        data = {
-            'title': 'Home',
-            'address_line1': 'Kadikoy',
-            'address_line2': 'Istanbul',
-
-            'city': 'Istanbul',
-            'country': 'Turkey',
-            'postal_code': '34732',
-        }
-        response = self.client.post(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-
-        url = reverse('address-create')
+        super().setUp()
+        
         data = {
             'title': 'Work',
             'address_line1': 'Kadikoy',
@@ -208,7 +180,8 @@ class AddressListViewTest(APITestCase):
             'country': 'Turkey',
             'postal_code': '34732',
         }
-        response = self.client.post(url, data, format='json')
+        response = self.create_address(data)
+        response = self.create_address(data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
 
@@ -225,21 +198,15 @@ class AddressListViewTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_list_addresses_with_different_account(self):
-        url = reverse('user-register')
+
         data = {
             'email': 'firat2@email.com',
             'first_name': 'Firat',
             'last_name': 'Kizilboga',
             'password': 'Aa125423',
         }
-        self.client = APIClient()
-        response = self.client.post(url, data, format='json')
-        url = reverse('user-login')
-        email = data['email']
-        password = data['password']
-        response = self.client.post(url, {'email': email, 'password':password}, format='json')
-        token = response.data['token']
-        self.client.credentials(HTTP_AUTHORIZATION='Token ' + token)
+        response = self.create_user(data)
+        response = self.login_user(data['email'], data['password'])
 
         #add 1 address
         url = reverse('address-create')
@@ -251,7 +218,7 @@ class AddressListViewTest(APITestCase):
             'country': 'Turkey',
             'postal_code': '34732',
         }
-        response = self.client.post(url, data, format='json')
+        response = self.create_address(data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
         #list addresses
@@ -260,25 +227,9 @@ class AddressListViewTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 1)
 
-class AddressDetailViewTest(APITestCase):
+class AddressDetailViewTest(BaseTest):
     def setUp(self):
-        url = reverse('user-register')
-        data = {
-            'email': 'firatkizilboga@gmail.com',
-            'first_name': 'Firat',
-            'last_name': 'Kizilboga',
-            'password': 'Aa125423',
-        }
-        response = self.client.post(url, data, format='json')
-        self.data = data
-
-        url = reverse('user-login')
-        email = self.data['email']
-        password = self.data['password']
-        response = self.client.post(url, {'email': email, 'password':password}, format='json')
-        self.token = response.data['token']
-        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token)
-
+        super().setUp()
         url = reverse('address-create')
         data = {
             'title': 'Home',
@@ -289,7 +240,7 @@ class AddressDetailViewTest(APITestCase):
             'country': 'Turkey',
             'postal_code': '34732',
         }
-        response = self.client.post(url, data, format='json')
+        response = self.create_address(data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
         url = reverse('address-create')
@@ -301,7 +252,7 @@ class AddressDetailViewTest(APITestCase):
             'country': 'Turkey',
             'postal_code': '34732',
         }
-        response = self.client.post(url, data, format='json')
+        response = self.create_address(data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
     def test_retrieve_address(self):
@@ -331,40 +282,17 @@ class AddressDetailViewTest(APITestCase):
             'last_name': 'Kizilboga',
             'password': 'Aa125423',
         }
-        self.client = APIClient()
-        response = self.client.post(url, data, format='json')
-        url = reverse('user-login')
-        email = data['email']
-        password = data['password']
-        response = self.client.post(url, {'email': email, 'password':password}, format='json')
-        token = response.data['token']
-        self.client.credentials(HTTP_AUTHORIZATION='Token ' + token)
+        response = self.create_user(data)
+        response = self.login_user(data['email'], data['password'])
 
         url = reverse('address-detail', args=["0"])
         response = self.client.post(url, format='json')
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
     
 
-class AddressDeleteViewTest(APITestCase):
+class AddressDeleteViewTest(BaseTest):
     def setUp(self):
-        url = reverse('user-register')
-        data = {
-            'email': 'firatkizilboga@gmail.com',
-            'first_name': 'Firat',
-            'last_name': 'Kizilboga',
-            'password': 'Aa125423',
-        }
-        response = self.client.post(url, data, format='json')
-        self.data = data
-
-        url = reverse('user-login')
-        email = self.data['email']
-        password = self.data['password']
-        response = self.client.post(url, {'email': email, 'password':password}, format='json')
-
-        self.token = response.data['token']
-        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token)
-
+        super().setUp()
         url = reverse('address-create')
         data = {
             'title': 'Home',
@@ -374,7 +302,7 @@ class AddressDeleteViewTest(APITestCase):
             'country': 'Turkey',
             'postal_code': '34732',
         }
-        response = self.client.post(url, data, format='json')
+        response = self.create_address(data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
     
     def test_delete_address(self):
