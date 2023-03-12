@@ -30,6 +30,9 @@ Projede çalışan bütün endpointler api/views.py dosyasında bulunmaktadır. 
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
+cd server
+python manage.py makemigrations
+python manage.py migrate
 ```
 
 ### Redis
@@ -53,9 +56,12 @@ redis-server
 ### Server
 ```bash
 cd server
-python manage.py makemigrations
-python manage.py migrate
 python manage.py runserver
+```
+ya da 
+```bash
+cd server
+python manage.py test
 ```
 
 ### Celery
