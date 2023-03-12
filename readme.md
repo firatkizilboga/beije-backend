@@ -51,7 +51,6 @@ python manage.py runserver
 ### Celery
 Farklı bir terminalde
 ```bash
-```bash
 cd server
 celery -A server worker --loglevel=INFO -B
 ```
