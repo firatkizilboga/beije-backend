@@ -33,12 +33,22 @@ pip install -r requirements.txt
 ```
 
 ### Redis
+#### macOS
 ```bash
 brew install redis
-redis-server
+```
+#### Linux
+```bash
+sudo apt-get install redis
 ```
 
 ## Kullanım
+Hepsi ayrı terminalde çalıştırılmalıdır.
+### Redis
+-Background process olarak da açabilirsiniz
+```bash
+redis-server
+```
 
 ### Server
 ```bash
@@ -49,7 +59,6 @@ python manage.py runserver
 ```
 
 ### Celery
-Farklı bir terminalde
 ```bash
 cd server
 celery -A server worker --loglevel=INFO -B
