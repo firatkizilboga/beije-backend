@@ -36,6 +36,13 @@ class User(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return self.email
 
+class AdminUser(User):
+    class Meta:
+        proxy = True
+
+    def save(self, *args, **kwargs):
+        self.is_staff = True
+        super().save(*args, **kwargs)
 
 
 class Address(models.Model):
@@ -119,7 +126,7 @@ class Order(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.total_price or self.total_price == 0:
-            self.total_price = self.subscription.total
+            self.total_price = self.subscription.totalæ
         super(Order, self).save(*args, **kwargs)
 
     def cancel(self):
@@ -141,3 +148,4 @@ class Order(models.Model):
         self.is_delivered = True
         self.is_delivered_date = datetime.now()
         self.save()
+    
