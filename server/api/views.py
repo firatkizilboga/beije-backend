@@ -161,6 +161,51 @@ class SubscriptionCreateView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+class SubscriptionDeactivateView(APIView):
+
+    """
+        Deactivate a subscription in the system
+        """
+
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        """
+            Deactivate a subscription
+        """
+        try:
+            subscription = Subscription.objects.get(id=pk)
+        except Subscription.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        if subscription.user != request.user:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        subscription.active = False
+        subscription.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+class SubscriptionActivateView(APIView):
+    """
+        Activate a subscription in the system
+        """
+
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        """
+            Activate a subscription
+        """
+        try:
+            subscription = Subscription.objects.get(id=pk)
+        except Subscription.DoesNotExist:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        if subscription.user != request.user:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        subscription.active = True
+        subscription.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 class SubscriptionListView(APIView):
     """
