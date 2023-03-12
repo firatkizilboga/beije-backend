@@ -5,7 +5,7 @@ from rest_framework.test import APITestCase, APIClient
 from .models import User, Order, Address, Subscription
 
 from .serializers import *
-import api.tasks as tasks
+from . import tasks
 
 # Create your tests here.
 class BaseTest(APITestCase):
