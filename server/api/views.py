@@ -1,24 +1,28 @@
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
-from django.shortcuts import render
-
-# Create your views here.
-
-from .models import User, Order, Address, Subscription
-from .serializers import *
-
-# import tokenauthentication and isauthenticated
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.authentication import TokenAuthentication
-
-# import apiview
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 
+from django.shortcuts import render
+
+
+# Create your views here.
+
+from .models import *
+from .serializers import *
+
 
 class UserCreateView(APIView):
+    """
+    Create a new user in the system
+    """
     def post(self, request):
+        """
+        Create a new user with a given email and password
+        """
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -27,9 +31,12 @@ class UserCreateView(APIView):
 
 
 class UserLoginView(ObtainAuthToken):
+    """
+    Create a new auth token for user
+    """
     serializer_class = UserLoginSerializer
-
     def post(self, request, *args, **kwargs):
+        """handle creating user authentication tokens"""
         serializer = self.serializer_class(data=request.data,
                                            context={'request': request})
 
@@ -46,7 +53,13 @@ class UserLoginView(ObtainAuthToken):
 
 
 class AdminCreateView(APIView):
+    """
+    Create a new admin in the system
+    """
     def post(self, request):
+        """
+        Create a new admin with a given email and password
+        """
         serializer = AdminSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -56,6 +69,10 @@ class AdminCreateView(APIView):
 
 # user has to be token authenticated
 class AddressCreateView(APIView):
+    """
+    Create a new address in the system
+    """
+
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
 
@@ -69,20 +86,32 @@ class AddressCreateView(APIView):
 
 
 class AddressListView(APIView):
+    """
+    List all addresses in the system
+    """
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        """
+            Return a list of all the existing addresses.
+        """
         address = Address.objects.filter(user=request.user)
         serializer = AddressSerializer(address, many=True)
         return Response(serializer.data)
 
 
 class AddressDetailView(APIView):
+    """
+    Retrieve a single address in the system
+    """
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
 
     def post(self, request, pk):
+        """
+            Return a single address
+        """
         try:
             address = Address.objects.get(id=pk)
         except Address.DoesNotExist:
@@ -94,10 +123,16 @@ class AddressDetailView(APIView):
 
 
 class AddressDeleteView(APIView):
+    """
+    Delete a single address in the system
+    """
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
 
     def delete(self, request, pk):
+        """
+            Delete a single address
+        """
         try:
             address = Address.objects.get(id=pk)
         except Address.DoesNotExist:
@@ -109,10 +144,16 @@ class AddressDeleteView(APIView):
 
 
 class SubscriptionCreateView(APIView):
+    """
+        Create a new subscription in the system
+    """
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        """
+            Create a new subscription with a given address and subscription type
+        """
         serializer = SubscriptionSerializer(
             data=request.data, context={'request': request})
         if serializer.is_valid():
@@ -122,20 +163,33 @@ class SubscriptionCreateView(APIView):
 
 
 class SubscriptionListView(APIView):
+    """
+        List all subscriptions in the system
+    """
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        """
+            Return a list of all the existing subscriptions.
+        """
         subscription = Subscription.objects.filter(user=request.user)
         serializer = SubscriptionSerializer(subscription, many=True)
         return Response(serializer.data)
 
 
 class SubscriptionDetailView(APIView):
+    """
+        Retrieve a single subscription in the system
+    """
+
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
 
     def post(self, request, pk):
+        """
+            Return a single subscription
+        """
         try:
             subscription = Subscription.objects.get(id=pk)
         except Subscription.DoesNotExist:
@@ -147,10 +201,18 @@ class SubscriptionDetailView(APIView):
 
 
 class SubscriptionDeleteView(APIView):
+    """
+        Delete a single subscription in the system
+    """
+
+
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
 
     def delete(self, request, pk):
+        """
+            Handles delete requests for a subscription
+        """
         try:
             subscription = Subscription.objects.get(id=pk)
         except Subscription.DoesNotExist:
@@ -162,11 +224,17 @@ class SubscriptionDeleteView(APIView):
 
 
 class ItemCreateView(APIView):
+    """
+        Create a new item in the system
+     """
     authentication_classes = [TokenAuthentication]
     # make sure user is staff
     permission_classes = [IsAuthenticated, IsAdminUser]
 
     def post(self, request):
+        """
+            Create a new item with a given name and price
+        """
         serializer = ItemSerializer(
             data=request.data, context={'request': request})
         if serializer.is_valid():
@@ -176,13 +244,24 @@ class ItemCreateView(APIView):
 
 
 class ItemListView(APIView):
+    """
+        List all items in the system
+    """
+
     def get(self, request):
+        """
+            Return a list of all the existing items.
+        """
         item = Item.objects.all()
         serializer = ItemSerializer(item, many=True)
         return Response(serializer.data)
 
 
 class ItemDeleteView(APIView):
+    """
+        Delete a single item in the system
+    """
+
     authentication_classes = [TokenAuthentication]
     # make sure user is staff
     permission_classes = [IsAuthenticated, IsAdminUser]
@@ -197,10 +276,16 @@ class ItemDeleteView(APIView):
 
 
 class SubscriptionItemAddView(APIView):
+    """ 
+        Add an item to a subscription
+    """
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
 
     def post(self, request, pk):
+        """
+            Add an item to a subscription
+        """
         try:
             subscription = Subscription.objects.get(id=pk)
         except Subscription.DoesNotExist:
@@ -216,10 +301,17 @@ class SubscriptionItemAddView(APIView):
 
 
 class SubscriptionItemListView(APIView):
+    """
+        List all items in a subscription
+    """
+     
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
 
     def post(self, request, pk):
+        """ 
+            Return a list of all the items in a subscription    """
+
         try:
             subscription = Subscription.objects.get(id=pk)
         except Subscription.DoesNotExist:
@@ -233,10 +325,17 @@ class SubscriptionItemListView(APIView):
 
 
 class SubscriptionItemRemoveView(APIView):
+    """
+        Remove an item from a subscription  
+    """
+
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
 
     def delete(self, request, pk):
+        """ 
+            Handles delete requests for a subscription item
+        """
         try:
             subscriptionitem = SubscriptionItem.objects.get(id=pk)
         except SubscriptionItem.DoesNotExist:
@@ -247,22 +346,17 @@ class SubscriptionItemRemoveView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-"""
-    path('subscription/<int:pk>/order/', OrderCreateView.as_view(), name='order-create'),
-    path('subscription/<int:pk>/order/<int:order_pk>/', OrderDetailView.as_view(), name='order-detail'),
-    path('subscription/<int:pk>/order/<int:order_pk>/status/set/paid', OrderPaidView.as_view(), name='order-delete'),
-    path('subscription/<int:pk>/order/<int:order_pk>/status/set/shipped', OrderShippedView.as_view(), name='order-delete'),
-    path('subscription/<int:pk>/order/<int:order_pk>/status/set/delivered', OrderDeliveredView.as_view(), name='order-delete'),
-    path('subscription/<int:pk>/order/<int:order_pk>/status/set/cancelled', OrderCancelledView.as_view(), name='order-delete'),
-    path('subscription/<int:pk>/order/list/', OrderListView.as_view(), name='order-list'),
-"""
-
-
 class OrderBaseView(APIView):
+    """
+        Base view for order
+    """
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
 
     def get_subscription(self, pk):
+        """
+                Return a single subscription by its id  
+                """
         try:
             subscription = Subscription.objects.get(id=pk)
         except Subscription.DoesNotExist:
@@ -272,6 +366,9 @@ class OrderBaseView(APIView):
         return subscription
     
     def get_order(self, pk):
+        """
+                Return a single order by its id
+            """
         try:
             order = Order.objects.get(id=pk)
         except Order.DoesNotExist:
@@ -281,7 +378,13 @@ class OrderBaseView(APIView):
         return order
     
 class OrderCreateView(OrderBaseView):
+    """
+        Create a new order
+    """
     def post(self, request, pk):
+        """
+            Create a new order
+        """
         subscription = self.get_subscription(pk)
         if isinstance(subscription, Response):
             return subscription
@@ -294,7 +397,13 @@ class OrderCreateView(OrderBaseView):
         return Response(status=status.HTTP_400_BAD_REQUEST)
         
 class OrderDetailView(OrderBaseView):
+    """
+        Get a single order
+    """
     def post(self, request, pk, order_pk):
+        """
+            Get a single order
+        """
         subscription = self.get_subscription(pk)
         if isinstance(subscription, Response):
             return subscription
@@ -304,7 +413,13 @@ class OrderDetailView(OrderBaseView):
         return Response(order, status=status.HTTP_200_OK)
 
 class OrderListView(OrderBaseView):
+    """
+        Get a list of orders
+        """
     def post(self, request, pk):
+        """
+            Get a list of orders
+            """
         subscription = self.get_subscription(pk)
         if isinstance(subscription, Response):
             return subscription
@@ -313,7 +428,13 @@ class OrderListView(OrderBaseView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 class OrderPayView(OrderBaseView):
+    """
+        set is paid to true
+    """ 
     def post(self, request, pk, order_pk):
+        
+        """handle the setting of is paid to true"""
+
         subscription = self.get_subscription(pk)
         if isinstance(subscription, Response):
             return subscription
@@ -324,7 +445,14 @@ class OrderPayView(OrderBaseView):
         return Response(status=status.HTTP_200_OK)
 
 class OrderStatusView(OrderBaseView):
+    """
+        Get the status of an order
+    """
+
     def post(self, request, pk, order_pk):
+        """
+            Get the status of an order
+        """
         subscription = self.get_subscription(pk)
         if isinstance(subscription, Response):
             return subscription
@@ -336,7 +464,13 @@ class OrderStatusView(OrderBaseView):
 
 
 class OrderShipView(OrderBaseView):
+    """
+        Set is shipped to true
+    """
     def post(self, request, pk, order_pk):
+        """
+            handle the setting of is shipped to true
+        """
         subscription = self.get_subscription(pk)
         if isinstance(subscription, Response):
             return subscription
@@ -347,7 +481,14 @@ class OrderShipView(OrderBaseView):
         return Response(status=status.HTTP_200_OK)
 
 class OrderDeliverView(OrderBaseView):
+    """
+        Set is delivered to true
+    """
     def post(self, request, pk, order_pk):
+        """
+            handle the setting of is delivered to true
+        """
+
         subscription = self.get_subscription(pk)
         if isinstance(subscription, Response):
             return subscription
@@ -358,7 +499,13 @@ class OrderDeliverView(OrderBaseView):
         return Response(status=status.HTTP_200_OK)
 
 class OrderCancelView(OrderBaseView):
+    """
+        Cancel an order
+    """
     def post(self, request, pk, order_pk):
+        """
+            handle the setting of is delivered to true
+        """
         subscription = self.get_subscription(pk)
         if isinstance(subscription, Response):
             return subscription

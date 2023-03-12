@@ -1,17 +1,21 @@
 from django.test import TestCase
-
-# Create your tests here.
-
-from django.test import TestCase
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase, APIClient
 from .models import User, Order, Address, Subscription
+
 from .serializers import *
 import api.tasks as tasks
 
 # Create your tests here.
 class BaseTest(APITestCase):
+    """
+    Base test class for all tests
+    creates 3 items for testing
+    creates a user and logs the user in
+    creates an address for the user
+    defines but does not create a subscription
+    """
     def setUp(self):
         #create 3 items for testing
         self.item1 = Item.objects.create(title='Item 1', price=10)
@@ -72,6 +76,9 @@ class BaseTest(APITestCase):
     
     
 class UserCreateViewTest(BaseTest):
+    """
+    Test module for inserting a new user
+    """
     def setUp(self):
         pass
     def test_create_user(self):
@@ -105,6 +112,9 @@ class UserCreateViewTest(BaseTest):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
 class UserLoginViewTest(BaseTest):
+    """
+    Test module for logging in a user
+    """
     def setUp(self):
         data = {
             'email': 'firatkizilboga11@gmail.com',
@@ -125,11 +135,18 @@ class UserLoginViewTest(BaseTest):
     def test_login_user_with_wrong_password(self):
         url = reverse('user-login')
         email = 'firatkizilboga11@gmail.com'
-        response = self.client.post(url, {'email': email, 'password':'wrong-password'}, format='json')
+        response = self.client.post(url, 
+                                    {'email': email, 
+                                     'password':'wrong-password'}, 
+                                     format='json'
+                                     )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
     
 
 class AddressCreateViewTest(BaseTest):
+    """
+    Test module for inserting a new address
+    """
     def setUp(self):
         super().setUp()
 

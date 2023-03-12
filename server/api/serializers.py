@@ -1,8 +1,9 @@
 #serializers.py
 
 from rest_framework import serializers
-from .models import *
 from rest_framework.authtoken.serializers import AuthTokenSerializer
+
+from .models import *
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
