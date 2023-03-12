@@ -285,7 +285,7 @@ class AddressDetailViewTest(BaseTest):
     def test_retrieve_address(self):
         url = reverse('address-list')
         response = self.client.post(url, format='json')
-        print(response.data)
+
         address_id = response.data[0]['id']
         url = reverse('address-detail', args=[address_id])
         response = self.client.post(url, format='json')
@@ -648,7 +648,7 @@ class SubscriptionItemsViewTest(BaseTest):
         #get the subscription
         url = reverse('subscription-detail', args=[1])
         response = self.client.post(url, format='json')
-        print(response.data)
+
         total_price = int(response.data.get('total'))
         self.assertEqual(total_price, 130)
 
@@ -733,7 +733,7 @@ class SubscriptionItemsViewTest(BaseTest):
         #get the subscription
         url = reverse('subscription-detail', args=[1])
         response = self.client.post(url, format='json')
-        print(response.data)
+
         total_price = int(response.data.get('total'))
         self.assertEqual(total_price, 0)
 
@@ -792,8 +792,156 @@ class SubscriptionItemsViewTest(BaseTest):
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
 
-    
+class OrderTests(BaseTest):
+    def setUp(self):
+        super().setUp()
+        #create a subscription
+        data = {
+            'title': 'Monthly',
+            "frequency": 30,
+            "address": 1,
+        }
+        self.create_subscription(data)
+        #add an item to the subscription
+        url = reverse('subscription-item-add', args=[1])
+        data = {
+            'item': 1,
+            'quantity': 5
+        }
+
+        response = self.client.post(url,data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        url = reverse('order-create', args=[1])
+        response = self.client.post(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_create_order(self):
+        url = reverse('order-create', args=[1])
+        response = self.client.post(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+            
+    def test_create_order_unauthenticated(self):
+        url = reverse('order-create', args=[1])
+        client = APIClient()
+        response = client.post(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+    def test_create_order_subscription_does_not_exist(self):
+        url = reverse('order-create', args=[100])
+        response = self.client.post(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     
+    def test_create_order_subscription_does_not_belong_to_user(self):
+        #create a user
+        self.client = APIClient()
+        data = {
+                'email': 'f2@gmail.com',
+                'first_name': 'Firat',
+                'last_name': 'Kizilboga',
+                'password': "Aa125423",
+            }
+        self.create_user(
+            data
+        )
+        self.login_user(data['email'], data['password'])
+        url = reverse('order-create', args=[1])
+        response = self.client.post(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
+    def test_create_order_subscription_has_no_items(self):
+        #remove the item
+        url = reverse('subscription-item-remove', args=[1])
+        data = {
+            'item': 1,
+            'quantity': 5
+        }
+        response = self.client.delete(url,data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        url = reverse('order-create', args=[1])
+        response = self.client.post(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
     
+    def test_create_order_subscription_has_no_address(self):
+        #remove the address
+        url =reverse('address-delete', args=[1])
+        response = self.client.delete(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        url = reverse('order-create', args=[1])
+        response = self.client.post(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+    
+    def test_list_orders(self):
+        #add item
+        url = reverse('subscription-item-add', args=[1])
+        data = {
+            'item': 2,
+            'quantity': 5
+        }
+        response = self.client.post(url,data, format='json')
+        
+        #create an order
+        url = reverse('order-create', args=[1])
+        response = self.client.post(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        #list orders
+        url = reverse('order-list', args=[1])
+        response = self.client.post(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 2)
+
+    def test_list_orders_unauthenticated(self):
+        url = reverse('order-list', args=[1])
+        client = APIClient()
+        response = client.post(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+    
+    def test_list_orders_subscription_does_not_belong_to_user(self):
+        #create a user
+        self.client = APIClient()
+        data = {
+                'email': 'f2@gmail.com',
+                'first_name': 'Firat',
+                'last_name': 'Kizilboga',
+                'password': "Aa125423",
+            }
+        self.create_user(
+            data
+        )
+
+        self.login_user(data['email'], data['password'])
+        url = reverse('order-list', args=[1])
+        response = self.client.post(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_orders_status_default_user(self):
+        #place order
+        url = reverse('order-create', args=[1])
+        response = self.client.post(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        responses = []
+
+        for i in ['order-paid', 'order-shipped', 'order-delivered', 'order-cancelled']:
+            url = reverse(i, args=[1,1])
+            response = self.client.post(url)
+            responses.append(response)
+        
+        print(responses)
+        for i in responses:
+            self.assertEqual(i.status_code, status.HTTP_200_OK)
+            
+    
+    def test_orders_status_unauthenticated(self):
+        for i in ['order-paid', 'order-shipped', 'order-delivered', 'order-cancelled']:
+            url = reverse(i, args=[1,1])
+            client = APIClient()
+
+            response = client.post(url, format='json')
+            self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        
+
+            
+        

@@ -7,6 +7,7 @@ from .views import *
 urlpatterns = [
     path('user/register/', UserCreateView.as_view(), name='user-register'),
     path('user/login/', UserLoginView.as_view(), name='user-login'),
+    path('admin/create/', AdminCreateView.as_view(), name='admin-create'),
 
     path('address/create/', AddressCreateView.as_view(), name='address-create'),
     path('address/list/', AddressListView.as_view(), name='address-list'),
@@ -28,11 +29,11 @@ urlpatterns = [
     path('subscription/<int:pk>/list-items/', SubscriptionItemListView.as_view(), name='subscription-item-list'),
 
     #order stuff
-    path('subscription/order/', OrderCreateView.as_view(), name='order-create'),
+    path('subscription/<int:pk>/order/create', OrderCreateView.as_view(), name='order-create'),
     path('subscription/<int:pk>/order/<int:order_pk>/', OrderDetailView.as_view(), name='order-detail'),
-    path('subscription/<int:pk>/order/<int:order_pk>/status/set/paid', OrderPaidView.as_view(), name='order-delete'),
-    path('subscription/<int:pk>/order/<int:order_pk>/status/set/shipped', OrderShippedView.as_view(), name='order-delete'),
-    path('subscription/<int:pk>/order/<int:order_pk>/status/set/delivered', OrderDeliveredView.as_view(), name='order-delete'),
-    path('subscription/<int:pk>/order/<int:order_pk>/status/set/cancelled', OrderCancelledView.as_view(), name='order-delete'),
+    path('subscription/<int:pk>/order/<int:order_pk>/status/set/paid', OrderPayView.as_view(), name='order-paid'),
+    path('subscription/<int:pk>/order/<int:order_pk>/status/set/shipped', OrderShipView.as_view(), name='order-shipped'),
+    path('subscription/<int:pk>/order/<int:order_pk>/status/set/delivered', OrderDeliverView.as_view(), name='order-delivered'),
+    path('subscription/<int:pk>/order/<int:order_pk>/status/set/cancelled', OrderCancelView.as_view(), name='order-cancelled'),
     path('subscription/<int:pk>/order/list/', OrderListView.as_view(), name='order-list'),
 ]

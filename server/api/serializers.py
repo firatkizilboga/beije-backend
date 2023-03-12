@@ -1,7 +1,7 @@
 #serializers.py
 
 from rest_framework import serializers
-from .models import User, Order, Address, Subscription, Item, SubscriptionItem
+from .models import *
 from rest_framework.authtoken.serializers import AuthTokenSerializer
 
 class UserSerializer(serializers.ModelSerializer):
@@ -60,7 +60,32 @@ class UserLoginSerializer(serializers.Serializer):
 
         attrs['user'] = user
         return attrs
+class AdminSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AdminUser
+        fields = [
+            'email',
+            'first_name',
+            'last_name',
+            'password'
+        ]
+
+    def validate(self, data):
+        if len(data['password']) < 8:
+            raise serializers.ValidationError('Password must be at least 8 characters long')
+        return data
     
+    def save(self):
+        user = AdminUser(
+            email=self.validated_data['email'],
+            first_name=self.validated_data['first_name'],
+            last_name=self.validated_data['last_name'],
+        )
+        password = self.validated_data['password']
+        user.set_password(password)
+        user.save()
+        return user
+
 class AddressSerializer(serializers.ModelSerializer):
     class Meta:
         model = Address
@@ -94,20 +119,18 @@ class OrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = [
-            'id',
-            'user',
-            'address',
-            'items',
-            'total',
-            'created_at',
-            'updated_at',
-            'is_active'
+            'subscription',
+            'total_price',
         ]
-        read_only_fields = ['user','id','created_at','updated_at','is_active']
+        read_only_fields = ['id']
 
-    def create(self, validated_data):
-        validated_data['user'] = self.context['request'].user
-        return super().create(validated_data)
+    def get_total_price(self, obj):
+        #GET ALL SUBSCRIPTION ITEMS
+        subscription_items = SubscriptionItem.objects.filter(subscription=obj.subscription)
+        total_price = 0
+        for item in subscription_items:
+            total_price += item.item.price * item.quantity
+        return total_price
     
 
 class SubscriptionSerializer(serializers.ModelSerializer):
@@ -155,26 +178,28 @@ class SubscriptionItemSerializer(serializers.ModelSerializer):
             'id',
             'item',
             'quantity',
+            'subscription',
         ]
-        read_only_fields = ['id','subscription']
+        read_only_fields = ['id',
+                            'subscription',
+                            ]
 
     def create(self, validated_data):
         #get the subscription from the context
-        
-        validated_data['subscription'] = Subscription.objects.get(id=self.context['subscription'])
+        validated_data['subscription'] = self.context['subscription']
         return super().create(validated_data)
 
     def validate(self, validated_data):
         #check if the related subscription is active and exists
-        if not Subscription.objects.filter(id=self.context['subscription'], is_active=True).exists():
+        if not self.context['subscription'].is_active:
             raise serializers.ValidationError('Subscription is not active')
 
         #check if the related subscription belongs to the user making the request
-        if not Subscription.objects.filter(id=self.context['subscription'], user=self.context['request'].user).exists():
+        if not self.context['subscription'].user == self.context['request'].user:
             raise serializers.ValidationError('Subscription does not belong to user')
         
         #check if the related item exists
-        if not Item.objects.filter(id=self.context['subscription']).exists():
+        if not Item.objects.filter(id=validated_data['item'].id).exists():
             raise serializers.ValidationError('Item does not exist')
         
         #check if the quantity is greater than 0
