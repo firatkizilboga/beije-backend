@@ -1,6 +1,8 @@
 ## Giriş
 ### Selamlar
 Repoyu nest.js ile yazmadım. Django'ya hakimiyetim daha yüksek olduğundan dolayı django ile yazdım.
+Database Schema'yı reponun rootunda görselleştirilmiş şekilde bulabilirsiniz
+Requestleri modellemekten kastınızı anlayamadım web dev'de yeniyim ancak api/views.py dosyası içinde her endpoint için açıklamalar bulunmaktadır.
 
 
 ### Kullanılan Teknolojiler
@@ -9,9 +11,6 @@ Repoyu nest.js ile yazmadım. Django'ya hakimiyetim daha yüksek olduğundan dol
 - Celery
 - Redis
 - SQLite
-
-Database Schema'yı reponun rootunda görselleştirilmiş şekilde bulabilirsiniz
-Requestleri modellemekten kastınızı anlayamadım web dev'de yeniyim ancak api/views.py dosyası içinde her endpoint için açıklamalar bulunmaktadır.
 
 Zamanı geldiğinde subscription'a ait order'in oluşturulması için celery kullanıldı. Celery ile birlikte redis kullanıldı.
 
