@@ -8,6 +8,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase, APIClient
 from .models import User, Order, Address, Subscription
 from .serializers import *
+import api.tasks as tasks
 
 # Create your tests here.
 class BaseTest(APITestCase):
@@ -374,7 +375,7 @@ class SubscriptionCreateViewTest(BaseTest):
         data = {
             'title': 'Monthly',
             'address': address_id,
-            'fullfillment_frequency': 30,
+            'fulfillment_frequency': 30,
         }
 
         response = self.create_subscription(data)
@@ -390,7 +391,7 @@ class SubscriptionCreateViewTest(BaseTest):
         data = {
             'title': 'Monthly',
             'address': address_id,
-            'fullfillment_frequency': 30,
+            'fulfillment_frequency': 30,
         }
 
         self.client = APIClient()
@@ -404,14 +405,14 @@ class SubscriptionListViewTest(BaseTest):
             {
                 'title': 'Monthly',
                 'address': 0,
-                'fullfillment_frequency': 30,
+                'fulfillment_frequency': 30,
             }
         )
         self.create_subscription(
             {
                 'title': 'Weekly',
                 'address': 0,
-                'fullfillment_frequency': 7,
+                'fulfillment_frequency': 7,
             }
         )
         self.client = APIClient()
@@ -441,7 +442,7 @@ class SubscriptionListViewTest(BaseTest):
             {
                 'title': 'Monthly',
                 'address': 1,
-                'fullfillment_frequency': 30,
+                'fulfillment_frequency': 30,
             }
         )
 
@@ -474,7 +475,7 @@ class SubscriptionDetailViewTest(BaseTest):
             {
                 'title': 'Monthly',
                 'address': 2,
-                'fullfillment_frequency': 30,
+                'fulfillment_frequency': 30,
             }
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -482,7 +483,7 @@ class SubscriptionDetailViewTest(BaseTest):
             {
                 'title': 'Monthly',
                 'address': 1,
-                'fullfillment_frequency': 30,
+                'fulfillment_frequency': 30,
             }
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -536,7 +537,7 @@ class SubscriptionDetailViewTest(BaseTest):
             {
                 'title': 'Monthly',
                 'address': 1,
-                'fullfillment_frequency': 30,
+                'fulfillment_frequency': 30,
             }
         )
 
@@ -552,12 +553,12 @@ class SubscriptionDeleteViewTest(BaseTest):
         self.create_subscription({
             'title': 'Monthly',
             'address': 1,
-            'fullfillment_frequency': 30,
+            'fulfillment_frequency': 30,
         })
         self.create_subscription({
             'title': 'Weekly',
             'address': 1,
-            'fullfillment_frequency': 7,
+            'fulfillment_frequency': 7,
         })
 
     def test_delete_subscription(self):
@@ -603,7 +604,7 @@ class SubscriptionItemsViewTest(BaseTest):
         self.create_subscription({
             'title': 'Monthly',
             'address': 1,
-            'fullfillment_frequency': 30,
+            'fulfillment_frequency': 30,
         })
     
     def test_add_subscription_item(self):
@@ -633,7 +634,7 @@ class SubscriptionItemsViewTest(BaseTest):
         self.create_subscription({
             'title': 'Weekly',
             'address': 1,
-            'fullfillment_frequency': 7,
+            'fulfillment_frequency': 7,
         })
         url = reverse('subscription-item-add', args=[2])
         data = {
@@ -929,7 +930,6 @@ class OrderTests(BaseTest):
             response = self.client.post(url)
             responses.append(response)
         
-        print(responses)
         for i in responses:
             self.assertEqual(i.status_code, status.HTTP_200_OK)
             
@@ -945,3 +945,51 @@ class OrderTests(BaseTest):
 
             
         
+
+class SubscriptionAutoFulfill(BaseTest):
+    def setUp(self):
+        super().setUp()
+
+        #create a subscription
+        self.create_subscription(
+            {
+                'title': 'Monthly',
+                'address': 1,
+                'fulfillment_frequency': 30,
+            }
+        )
+        
+
+        self.now = datetime.now()
+
+        #set the subscription to past 2 months
+        subscription = Subscription.objects.get(id=1)
+        subscription.last_fulfillment_date = self.now - timedelta(days=60)
+        subscription.start_date = self.now - timedelta(days=60)
+        subscription.save()
+        subscription.next_fulfillment_date = subscription.last_fulfillment_date - timedelta(days=60)
+        subscription.save()
+
+
+        #add item
+        url = reverse('subscription-item-add', args=[1])
+        data = {
+            'item': 1,
+            'quantity': 5
+        }
+        response = self.client.post(url,data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+    
+    def test_fulfill(self):
+        tasks.check_and_fulfuill()
+        self.assertEqual(Order.objects.count(), 1)
+
+        #get the date of the order
+
+        #get the date parts
+    
+        self.assertEqual(Subscription.objects.get(id=1).last_fulfillment_date, self.now.date())
+        self.assertEqual(Subscription.objects.get(id=1).next_fulfillment_date, self.now.date() + timedelta(days=30))
+
+
+    

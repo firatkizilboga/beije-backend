@@ -139,3 +139,21 @@ REST_FRAMEWORK = {
 ACCOUNT_AUTHENTICATION_METHOD = 'email'
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_USERNAME_REQUIRED = False
+
+
+CELERY_APP = 'server.celery:app'
+CELERY_BROKER_URL = 'redis://localhost:6379'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379'
+CELERY_ACCEPT_CONTENT = ['application/json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'
+
+from celery.schedules import crontab
+
+CELERY_BEAT_SCHEDULE = {
+    'my-task': {
+        'task': 'api.tasks.check_and_fulfuill',
+        'schedule': crontab(minute=0, hour=0)
+    },
+}

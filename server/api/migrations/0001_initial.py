@@ -59,9 +59,9 @@ class Migration(migrations.Migration):
             name='Subscription',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('fullfillment_frequency', models.IntegerField(default=30)),
+                ('fulfillment_frequency', models.IntegerField(default=30)),
                 ('start_date', models.DateField(auto_now_add=True)),
-                ('last_fullfillment_date', models.DateField(auto_now_add=True)),
+                ('last_fulfillment_date', models.DateField(auto_now_add=True)),
                 ('is_active', models.BooleanField(default=True)),
                 ('address', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='api.address')),
                 ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),

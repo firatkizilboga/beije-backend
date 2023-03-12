@@ -141,7 +141,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
             'user',
             'address',
             'title',
-            'fullfillment_frequency',
+            'fulfillment_frequency',
             'total',
             'start_date',
             'is_active'
